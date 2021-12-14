@@ -174,3 +174,178 @@ When you have a union where all the members have a property in common, you can u
 > accident – the name _union_ comes from type theory. The _union_ `number | string` is composed by taking the union of the
 > _values_ from each type. 
 
+
+## Type Aliases
+
+A _type alias_ is a _name_ for any _type_.
+
+```typescript
+type Point = {
+  x: number;
+  y: number;
+}
+
+const printCoord = (pt: Point) => print(pt.x, pt.y) 
+```
+
+You can use a type alias to give a name to any type at all, not just an object type.
+
+```typescript
+type ID = number | string;
+```
+
+## Interfaces
+
+An _interface declaration_ is another way to name an object type:
+
+```typescript
+interface Point {
+  x: number;
+  y: number;
+}
+
+const printCoord = (pt: Point) => console.log(pt.x, pt.y)
+```
+
+TS is only concerned with the _structure_ of the value passed to `printCoord` – it only cares that it has the expected props.
+Being concerned only with the structure and capabilities of types is why we call TS a _structurally typed_ type system.
+
+
+### Differences Between Type Aliases and Interfaces
+
+They are very similar, and in many cases you can choose between them freely. Almost all features of an **interface** are
+available in **type**, the key distinction is that a type cannon be reopened to add new properties vs an interface which
+is always extendable.
+
+![](../assets/everyday_types/interface_vs_type.png)
+
+- Prior to TS 4.2 type alias names may appear in error messages, sometimes in place of the equivalent anonymous type.
+  Interfaces will always be named in error messages.
+- Type aliases may not participate in declaration merging, but interfaces can.
+- Interfaces may only be used to declare the shapes of objects, not rename primitives.
+- Interfaces names will always appear in their original form in error messages, but only when they are used by name.
+
+
+## Type Assertions
+
+Sometimes you will have info about the type of value that TS can't know about.
+
+For example, if you are using `document.getElementById`, TS only knows that this will return _some_ kind of **HTMLElement**,
+but you might know that your page will always have an **HTMLCanvasElement** with a given ID.
+
+In this situation, you can use _type assertion_ to specify a more specific type:
+
+```typescript
+const myCanvas = document.getElementById("main_canvas") as HTMLCanvasElement;
+```
+
+Like type annotation, type assertions are removed by the compiler and won't affect the runtime behavior of your code.
+
+You can also use the angle-bracket syntax (except if the code is in a `.tsx` file), which is equivalent:
+
+```typescript
+const myCanvas = <HTMLCanvasElement>document.getElementById("main_canvas");
+```
+
+> Because type assertions are removed at compile time, there is no runtime checking associated with a type assertion.
+> There won't be an exception or `null` generated if the type assertion is wrong.
+
+TS only allows type assertions which convert to a _more specific_ or _less specific_ version of a type. This rule prevents
+"impossible" coercions.
+
+```typescript
+const x = "hello" as number;
+
+// Exception: Conversion of type 'string' to type 'number' may be a mistake because neither type sufficiently overlaps with
+//            the other. If this was intentional, convert the expression to 'unknown' first.
+```
+
+Sometimes this rule can be too conservative. In such case you can use two assertions, first to **any** (or **unknown**),
+then to the desired type:
+
+```typescript
+const a = (expr as any) as T;
+```
+
+
+## Literal Types
+
+```typescript
+let changingString = "Hello World";
+changingString = "Ola Mundo";
+// Because 'changingString' can represent any possible string, that is how
+// TS describes it in the type system
+//
+// let changingString: string
+
+const constantString = "Hello World";
+// Because 'constantString' can only represent 1 possible string, it has a 
+// literal type representation
+//
+// const constantString: "Hello World"
+```
+
+By themselves, literal types aren't very valuable:
+
+```typescript
+let x: "hello" = "hello";
+x = "howdy"
+
+// Type '"howdy"' is not assignable tot type '"hello"'.
+```
+
+But by _combining_ literals into unions, you can express a much more useful concept – for example, functions that only
+accept a certain set of known values.
+
+```typescript
+const printText = (s: string, alignment: "left" | "right" | "center") => {}
+```
+
+
+### Literal Inference
+
+When you initialize a variable with an object, TS assumes that the props of that object might change values later.
+
+```typescript
+const obj = { counter: 0 };
+if (someCondition) {
+  obj.counter = 1;
+}
+```
+
+TS doesn't assume the assignment of 1 to a field which previously had 0 is an error. Another way of saying this is that
+`obj.counter` must have the type **number**, not 0, because types are used to determine both _reading_ and _writing_
+behavior.
+
+The same applies to strings:
+
+```typescript
+const req = { url: "https://example.com", method: "GET" };
+handleRequest(req.url, req.method)
+
+// Argument of type 'string' is not assignable to parameter of type '"GET" | "POST'.
+```
+
+In the above example `req.method` is inferred to be **string**, not "GET". Because code can be evaluated between the
+creation of req and the call of `handleRequest` which could assign a new string like "GUESS" to `req.method`, TS considers
+this code to have an error.
+
+Two ways to work around this.
+
+1. You can change the inference by adding a type assertion in either location
+    ```typescript
+    // Change 1
+    const req = { url: "https://example.com", method: "GET" as "GET" };
+    // Change 2
+    handleReq(req.url, req.method as "GET");
+    ```
+2. You can use `const` to convert the entire object to be type literals
+    ```typescript
+    const req = { url: "https://example.com", method: "GET" } as const;
+    handleRequest(req.url, req.method)
+    ```
+   
+The `as const` suffix acts like `const` but for the type system, ensuring that all properties are assigned the literal 
+type of a more general version like **string** or **number**.
+
+
