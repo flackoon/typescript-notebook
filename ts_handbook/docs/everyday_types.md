@@ -349,3 +349,68 @@ The `as const` suffix acts like `const` but for the type system, ensuring that a
 type of a more general version like **string** or **number**.
 
 
+### null and undefined
+
+JS has 2 primitive values used to signal absent or uninitialized value **null** and **undefined**.
+
+TS has two corresponding _types_ by the same names.
+
+#### strictNullChecks off
+
+With **strictNullChecks** _off_, values that might be **null** or **undefined** can still be accessed normally, and the
+values **null** and **undefined** can be assigned to a property of any type. The lack of checking for these values
+tends to be a major source of bugs; it is recommended to turn **strictNullChecks** on if it's appropriate.
+
+#### strictNullChecks on
+
+With **strictNullChecks** _on_, when a value is **null** or **undefined**, you will need to test for those values before
+using methods or props on that value. 
+
+```typescript
+const doSomething = (x: string | null) => {
+  if (x === null) {
+    // do something
+  } else {
+    console.log("Not null!")
+  }
+}
+```
+
+#### Non-null Assertion Operator (Postfix !)
+
+TS also has a special syntax for removing **null** and **undefined** from a type without doing any explicit checking. 
+Writing `!` after any expression is effectively a type assertion that the value isn't **null** or **undefined**
+
+```typescript
+const liveDangerously = (x?: number | null) => {
+  // No error
+  console.log(x!.toFixed());
+}
+```
+
+
+### Less Common Primitives
+
+#### bigint
+
+From ES2020 onwards, there is a primitive in JS used for very large integers, **BigInt**
+
+```typescript
+const oneHundred: bigint = BigInt(100);
+// or
+const anotherHundred: bigint = 100n;
+```
+
+
+#### symbol
+
+There is a primitive in JS used to create a globally unique reference via the function `Symbol()`
+
+```typescript
+const firstName = Symbol("name");
+const secondName = Symbol("name");
+
+if (firstName === secondName) {
+  // Never happening
+}
+```
