@@ -241,4 +241,256 @@ in the function signature, it's not relating anything.
 > **Rule**: If a type parameter only appears in one location, strongly reconsider if you actually need it
 
 
-### Optional Parameters
+## Optional Parameters
+
+A parameter can be made _optional_ with `?:`
+
+```typescript
+function f(x?: number) {
+  // ...
+}
+
+f();   // OK
+f(10); // OK
+```
+
+Although the parameter is specified as type **number**, the `x` parameter will actually have the type **number | undefined**
+because unspecified parameters in JS get the value **undefined**.
+
+
+### Optional Parameters in Callbacks
+
+In JS, if you call a function with more arguments than there are parameters, the extra arguments are simply **ignored**.
+TS behaves the same way. Functions with fewer parameters (of the same types) can always take the place of functions with
+more parameters.
+
+> When writing a function type for a callback, _never_ write an optional parameter unless you intend to call the function 
+> **without** passing that argument.
+
+
+## Function Overloads
+
+In TS, we can specify a function that can be called in different ways by writing _overload signatures_. To do this, 
+write some number of function signatures, followed by the body of the function:
+
+```typescript
+function makeDate(timestamp: number): Date;
+function makeDate(m: number, d: number, y: number): Date;
+function makeDate(mOrTimestamp: number, d?: number, y?: number): Date {
+  if (d !== undefined && y != undefined) {
+    return new Date(y, mOrTimestamp, d);
+  } 
+  
+  return new Date(mOrTimestamp);
+}
+
+const d1 = makeDate(12345678);
+const d2 = makeDate(5, 5, 5);
+const d3 = makeDate(1, 3);
+
+// No overload expects 2 arguments, but overloads do exist that expect either 1 or 3 arguments.
+```
+
+The first two signatures are the _overload signatures_. The function implementation follows with a compatible signature.
+Functions have an _implementation_ signature, but this signature can't be called directly. Even though we wrote a 
+function with two optional parameters after the required one, it can't be called with two parameters!
+
+
+### Overload Signatures and the Implementation Signature
+
+> The signature of the _implementation_ is **not** visible from the _outside_. When writing an overloaded function, you
+> should always have _two_ or more signatures above the implementation of the function.
+
+The implementation signature must also be _compatible_ with the overload signatures.
+
+
+### Writing Good Overloads
+
+There are a few guidelines you should follow when using function overloads. Following these principles will make your
+function easier to call, easier to understand, and easier to implement.
+
+Let's consider a function that returns the length of a string or an array:
+
+```typescript
+function len(s: string): number;
+function len(arr: any[]): number;
+function len(x: any) {
+  return x.length;
+}
+```
+
+The function is fine; it can be invoked with strings or arrays. However, it can't be invoked with a value that might be
+a string _or_ an array, because TS can only resolve a function call to a single overload:
+
+```typescript
+len("")     // OK
+len([0])    // OK
+len(Math.random() > 0.5 ? "hello" : [0]);   // Not OK
+```
+
+Because both overloads have the same argument count and the same return type, we can instead write a non-overloaded
+version of the function:
+
+```typescript
+function len(x: any[] | string) {
+  return x.length;
+}
+```
+
+Callers can invoke this with either sort of value, and as an added bonus, we don't have to figure out a correct implementation
+signature.
+
+> Always prefer parameters with union types instead of overloads when possible.
+
+
+### Declaring **this** in a Function
+
+TS will infer what the **this** should be in a function via code flow analysis, for example:
+
+```typescript
+const user = {
+  id: 123,
+  admin: false,
+  becomeAdmin: () => {
+    this.admin = true;
+  }
+}
+```
+
+TS understands that the function `user.becomeAdmin` has a corresponding **this** which is the outer object `user`. This 
+can be enough for a lot of cases, but there are a lot of cases where you need more control over what object **this**
+represents. The JS specification states that you cannot have a parameter called **this**, and so TS uses that syntax
+space to let you declare the type for **this** in the function body.
+
+```typescript
+interface DB {
+  filterUsers(filter: (this: User) => boolean): User[];
+}
+
+const db = getDB();
+const admins = db.filterUsers(function (this: User) {
+  return this.admin;
+});
+```
+
+This pattern is common with callback-style APIs, where another object typically controls when your function is called.
+Note that you need to use `function` and not arrow functions to get this behavior.
+
+
+## Other Types to Know About
+
+
+### void
+
+**void** represents the return value of functions which don't return a value. It's the inferred type any time a function
+doesn't have any **return** statements, or doesn't return any explicit value from those return statements (`return;`).
+
+> In JS, a function that doesn't return any value will return **undefined** implicitly. However, **void** and **undefined**
+> are not the same thing in TS. 
+
+
+### object
+
+The special type **object** refers to any value that isn't a primitive (string, number, bigint, boolean, symbol, null,
+or undefined). This is different from the _empty object type { }_, and also different from the global type **Object**. 
+It's very likely you will never use Object.
+
+> In JS, function values are objects: They have props, prototype chain, are instance of Object and so on. For the same 
+> reason function types are considered to be **objects** in TS.
+
+
+### unknown
+
+The **unknown** type represents **any** value. This is similar to the **any** type, but is safer because it's not legal
+to do anything with an **unknown** value:
+
+```typescript
+function f1(a: any) {
+  a.b();  // OK
+}
+
+function f2(a: unknown) {
+  a.b();  // NOT OK
+}
+```
+
+
+### never
+
+Some functions **never** return a value:
+
+```typescript
+function fail(msg: string): never {
+  throw new Error(msg);
+}
+```
+
+The **never** type represents values which are **never** observed. In a return type, this means that the function throws 
+an exception or terminates execution of the program.
+
+**never** also appears when TS determines there's nothing left in an union.
+
+
+### Function 
+
+The global type **Function** describes properties like `bind`, `call`, `apply`, and others present on all function values
+in JS. It also has the special property that values of type `Function` can always be called; these calls return **any**:
+
+> If you need to accept an arbitrary function but don't intend to call it, the type `() => void` is generally safer.
+
+
+## Rest Parameters and Arguments
+
+
+### Rest Parameters
+
+A rest parameter appears after all others and uses the `...` syntax:
+
+```typescript
+function multiply(n: number, ...m: number[]) {
+  return m.map(x => n * x);
+}
+
+// 'a' gets value [10, 20, 30, 40]
+const a = multiply(10, 1, 2, 3, 4);
+```
+
+In TS, the type annotation on these parameters is implicitly **any[]** instead of **any**, and any type annotation given
+must be of the form **Array<T>** or **T[]**, or a tuple type.
+
+
+### Rest Arguments
+
+Conversely, we can provide a variable number of arguments from an array using the spread syntax. For example, the **push**
+method of arrays takes any number of arguments:
+
+```typescript
+const arr1 = [1, 2, 3];
+const arr2 = [4, 5, 6];
+arr1.push(...arr2);
+```
+
+
+## Parameter Destructing
+
+The type annotation for the object goes after the destructing syntax:
+
+```typescript
+function sum({ a, b, c}: { a: number; b: number; c: number }) {
+  console.log(a + b + c);
+}
+```
+
+
+## Assignability of Functions
+
+
+### Return type void
+
+The **void** return type for functions can produce some unusual, but expected behavior.
+
+Contextual typing with a return type of **void** does **not** enforce functions to **not** return something. Another way
+of saying this is a contextual function type with a **void** return type (type vf = () => void), when implemented, can 
+return **any** other value, but it will be ignored.
+
+When the return value of one of these functions is assigned to another variable, it will retain the type of **void**:
