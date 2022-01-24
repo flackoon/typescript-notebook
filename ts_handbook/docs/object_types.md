@@ -78,3 +78,198 @@ interface ReadONlyStringArray {
   readonly [index: number]: string;
 }
 ```
+
+
+## Extending Types
+
+The **extends** keyword on an **interface** allows us to effectively copy members from other named types, and add 
+whatever new members we want. 
+
+```typescript
+interface BasicAddress {
+  name?: string;
+  street: string;
+  city: string;
+  country: string;
+}
+
+interface AddressWithUnit extends BasicAddress {
+  unit: string;
+}
+```
+
+Interfaces can also extend from multiple types.
+
+```typescript
+interface Colorful {
+  color: string;
+}
+
+interface Circle {
+  radius: number;
+}
+
+interface ColorfulCircle extends Colorful, Circle {}
+```
+
+
+## Intersection Types
+
+An intersection type is defined using the `&` operator.
+
+```typescript
+interface Colorful {
+  color: string;
+}
+
+interface Circle {
+  radius: number;
+}
+
+type ColorfulCircle = Colorful & Circle;
+```
+
+This will produce a new type that has all the members of **Colorful** and **Circle**.
+
+
+## Generic Object Types
+
+```typescript
+interface Box<Type> {
+  contents: Type;
+}
+
+let box: Box<string>;
+```
+
+**Box** is reusable in that **Type** can be substituted with anything. That means that when we need
+a box for a new type, we don't need to declare a new **Box** type at all. 
+
+This also means that we can avoid overloads entirely by instead using generic functions.
+
+```typescript
+function setContents<Type>(box: Box<Type>, newContents: Type) {
+  box.contents = newContents;
+}
+```
+
+Type aliases can also be generic. 
+
+
+```typescript
+interface Box<Type> {
+  contents: Type;
+}
+
+// by using a type alias instead:
+type Box<Type> = {
+  contents: Type;
+}
+```
+
+
+### The **Array** Type
+
+Generic object types are often some sort of container type that work independently of the type of elements they contain.
+It's ideal for data structures to work this way so that they're re-usable across different data types.
+
+```typescript
+function doSomething(value: Array<string>) {
+  // ...
+}
+```
+
+Modern JS also provides other data structures which are generic, like **Map<K, V>**, **Set<T>**, **Promise<T>**. All this 
+really means is that because of how **Map**, **Set**, and **Promise** behave, they can work with any sets of types.
+
+
+### The **ReadonlyArray** Type
+
+This is a special type that describes arrays that shouldn't be changed.
+
+Much like the **readonly** modifier for properties, it's mainly a tool we can use for intent. When we see a function that
+returns **ReadonlyArray**s, it tells us we're not meant to change the contents at all, and when we see a function that 
+consumes **ReadonlyArray**s, it tells us that we can pass any array into that function without worrying that it will change
+its contents.
+
+```typescript
+const roArray: ReadonlyArray<string> = ["red", "green", "blue"];
+```
+
+Just as TS provides a shorthand syntax for **Array<Type>** with **Type[]**, it also provides a shorthand syntax for 
+**ReadonlyArray<Type>** with **readonly Type[]**.
+
+> [**NOTE**] Unlike the **readonly** property modifier, assignability isn't bidirectional between regular **Arrays**
+> and **ReadonlyArrays**.
+> 
+> ```typescript
+> let x: readonly string[] = [];
+> let y: string[] = [];
+> x = y;
+> y = x; // Not allowed.
+> ```
+
+
+## Tuple Types
+
+A _tuple type_ is another sort of **Array** type that knows exactly how many elements it contains, and exactly
+which types it contains at specific positions.
+
+`type StringNumberPair = [string, number];`
+
+Tuple types are useful in heavily convention-based APIs, where each element's meaning is "obvious". This gives us flexibility
+in whatever we want to name our variables when we destructure them. However, since not every user holds te same view of
+what's obvious, it may be worth considering whether using objects with descriptive property names may be better for your API.
+
+Simple tuple types are equivalent to types which are versions of **Array**s that declare properties for specific indexes,
+and that declare **length** with a numeric literal type.
+
+```typescript
+interface StringNumberPair {
+  // specialized properties
+  length: 2;
+  0: string;
+  1: number;
+
+  // Other 'Array<string | number>' members...
+  slice(start?: number, end?: number): Array<string | number>;
+}
+```
+
+Tuples can have optional properties by writing out a question mark (`?` after an element's type). Optional tuple elements 
+can only come at the end, and also affect the type of **length**.
+
+Tuples cna also have rest elements, which have to be an array/tuple type.
+
+```typescript
+type StringNumberBooleans = [string, number, ...boolean[]]; // ["blah", 10, false, false, true]
+type StringBooleansNumber = [string, ...boolean[], number]; // ["blah", false, true, false, 10]
+type BooleansStringNumber = [...boolean[], string, number]; // [true, true, true, "false", 1]
+```
+
+Tuples types can be used in rest parameters and arguments, so the following:
+
+```typescript
+function readButtonInput(...args: [string, number, ...boolean[]]) {
+  const [name, version, ...input] = args;
+  // ...
+}
+```
+
+is basically equivalent to: 
+
+```typescript
+function readButtonInput(name: string, version: number, ...input: boolean[]) {
+  // ...
+}
+```
+
+
+### **readonly** Tuple Types
+
+Tuples types have **readonly** variants, and can be specified by sticking a **readonly** modifier in front of them - just
+like with array shorthand syntax.
+
+Tuples tend to be created and left un-modified in most code, so annotating types as **readonly** tuples when possible is
+a good default. This is also important given that array literals with const assertions will be inferred with readonly 
+tuple types.
