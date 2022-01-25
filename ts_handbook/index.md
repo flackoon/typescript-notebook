@@ -5,3 +5,4 @@
 3. [Narrowing](docs/narrowing.md)
 4. [More on Functions](docs/more_on_functions.md)
 5. [Object Types](docs/object_types.md)
+6. [Generics](docs/generics.md)
