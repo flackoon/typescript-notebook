@@ -74,7 +74,7 @@ In addition to generic interfaces, we can also create generic classes. Note that
 enums and namespaces.
 
 
-### Generic Classes
+## Generic Classes
 
 A generic class has a similar shape to a generic interface. Generic classes have a generic type parameter list in angle
 brackets (`<>`) following the name of the class. 
@@ -99,4 +99,59 @@ Just as with interface, putting the type parameter on the class itself lets us m
 class are working with the same type.
 
 
-### Generic Constrains
+## Generic Constrains
+
+```typescript
+interface Lengthwise {
+  length: number;
+}
+
+function loggingIdentity<Type extends Lengthwise>(arg: Type): Type {
+  console.log(arg.length); // now we know it has a .length property
+  return arg;
+}
+```
+
+Because the generic function is now constrained, it will no longer work over any and all types:
+
+```typescript
+loggingIdentity(3);
+// “Argument of type 'number' is not assignable to parameter of type 'Lengthwise'.”
+```
+
+Instead, we need to pass in values whose type has all the required properties:
+
+`loggingIdentity({length: 10, value: 3});`
+
+
+
+## Using Type Parameters in Generic Constraints
+
+You can declare a type parameter that is constrained by another type parameter. For example, here we'd like to get a 
+property from an object given its name. We'd like to ensure that we're not accidentally grabbing a property that does not
+exist on the **obj**, so we'll place a constraint between the 2 types:
+
+
+```typescript
+function getProperty<Type, Key extends keyof Type>(obj: Type, key: Key) {
+  return obj[key];
+}
+
+let x = { a:1, b: 2, c: 3, d: 4 };
+
+getProperty(x, "a");
+getProperty(x, "m");  // Argument of type '"m"' is not assignable to parameter of type '"a"' | "b" | "c" | "d"'. 
+```
+
+
+## Using Class Types in Generics
+
+When creating factories in TS using generics, it is necessary to refer to class types by their constructor functions. FOr
+example,
+
+```typescript
+function create<Type>(c: { new(): Type }): Type {
+  return new c();
+}
+```
+
