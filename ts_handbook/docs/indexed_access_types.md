@@ -1,5 +1,7 @@
 # Indexed Access Types
 
+- [Indexed Access Types](#indexed-access-types)
+
 We can use an *indexed type* to look up specific property on another type:
 
 ```typescript 

@@ -1,5 +1,7 @@
 # Typeof Type Operator
 
+- [Limitations](#limitations)
+
 TS adds a **typeof** operator so yo can use it in a *type* context  to refer to the *type* of a variable or property:
 
 ```typescript

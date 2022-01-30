@@ -1,12 +1,23 @@
 # The basics
 
-### Static type-checking
+- [Static type-checking](#static-type-checking)
+- [Non-exception Failures](#non-exception-failures)
+- [tsc, the TypeScript compiler](#tsc-the-typescript-compiler)
+- [Emitting with Errors](#emitting-with-errors)
+- [Explicit Types](#explicit-types)
+- [Erased Types](#erased-types)
+- [Downleveling](#downleveling)
+- [Strictness](#strictness)
+  - [noImplicitAny](#noimplicitany)
+  - [strictNullChecks](#strictnullchecks)
+
+## Static type-checking
 
 _Static types systems_ describe the shapes and behaviors of what our values will be when we run our programs. A type 
 checker like TypeScript uses that information and tells us when things might be going off the rails.
 
 
-### Non-exception Failures
+## Non-exception Failures
 
 ...runtime errors – cases where the JavaScript runtime tells us that it thinks something is nonsensical. Those cases come up
 because the ECMAScript specification has explicit instructions on how the language should behave when it runs into
@@ -23,7 +34,7 @@ While sometimes that implies a trade-off in what you can express, the intent is 
 And TypeScript catches _a lot_ of legitimate bugs.
 
 
-### tsc, the TypeScript compiler
+## tsc, the TypeScript compiler
 
 To compile a TS file, run
 
@@ -39,7 +50,7 @@ keep comments around.
 If we intentionally make an error, say an argument one, we will get an error message and a stacktrace after compiling.  
 
 
-### Emitting with Errors
+## Emitting with Errors
 
 If you compile a file that will make TS raise errors, you will still get it compiled to a .js file. That is because one
 of TypeScript's code values is: much of the time, _you_ will know better than TypeScript.
@@ -56,7 +67,7 @@ act a bit more strictly. In that case, you can use the `noEmitOnError` compiler 
 `tsc --noOmitOnError filename.ts`
 
 
-### Explicit Types
+## Explicit Types
 
 We don't always have to write explicit type annotations. In many cases, TS can even just _infer_ the types for us even if
 we omit them.
@@ -70,7 +81,7 @@ let msg = "hello there!";
 This is a feature, and it's best not to add annotations when the type system would end up inferring the same type anyway.
 
 
-### Erased Types
+## Erased Types
 
 Type annotations aren't part of JS (or ES to be pedantic), so there really aren't any browser or other runtimes that can
 just run TypeScript unmodified. That's why TS needs a compiler in the first place – it needs some way to strip out or 
@@ -79,7 +90,7 @@ transform any TS-specific code so that you can run it. Most TS-specific code get
 > Type annotations never change the runtime behavior of your program.
 
 
-### Downleveling
+## Downleveling
 
 Upon compilation, template strings get transformed to simple string concatenation.
 
@@ -95,7 +106,7 @@ supported.
 > safely specify ES2015 or above as a target, unless compatibility with certain ancient browsers is important.
 
 
-### Strictness
+## Strictness
 
 Per default, the experience with TS is more loose, where types are optional, inference takes the most lenient types, and
 there's no checking for potentially `null`/`undefined` values. Much like how `tsc` emits in the face of errors, these 
@@ -109,14 +120,14 @@ When possible, a new codebase should always turn these strictness checks on.
 The `strict` flag in the CLI, or `"strict": true` in a **tsconfig.json** toggles them all on simultaneously, but we
 can opt out of them individually. The two biggest ones you should know about are `noImplicitAny` and `strictNullChecks`.
 
-#### noImplicitAny
+### noImplicitAny
 
 In some places, TS doesn't try to infer types and instead falls back to the most lenient one – `any`. This isn't the worst
 thing that can happen – after all, falling back to any is just the plain JS experience anyway. 
 However, using `any` often defeats the purpose of using TS in the first place. Turning on the `noImplicitAny` flag will 
 issue an error on any variables whose type is implicitly inferred as `any`.
 
-#### strictNullChecks
+### strictNullChecks
 
 By default, values like `null` and `undefined` are assignable to any other type. This can make writing code easier, but
 forgetting to handle `null` and `undefined` is the cause of countless bugs in the world. The `strictNullChecks` flags 

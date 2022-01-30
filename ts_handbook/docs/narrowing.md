@@ -1,12 +1,22 @@
 # Narrowing
 
+- [typeof type guards](#typeof-type-guards)
+- [Truthiness narrowing](#truthiness-narrowing)
+- [Equality narrowing](#equality-narrowing)
+- [The `in` operator narrowing](#the-in-operator-narrowing)
+- [Assignments](#assignments)
+- [Control flow analysis](#control-flow-analysis)
+- [Using type predicates](#using-type-predicates)
+- [Discriminated unions](#discriminated-unions)
+- [The never type](#the-never-type)
+- [Exhaustiveness checking](#exhaustiveness-checking)
+
 Within our `if` checks for a variable type, TS sees `typeof something === "number"` and understands that as a special form
 of code called _type guard_. TS follows possible paths of execution that our programs can take to analyze the most specific
 possible type of a value at a given position. It looks at these special checks (_type guards_) and assignments, and the
 process of refining types to more specific types than declared is called _narrowing_.
 
 There are a couple of different constructs TS understands for narrowing.
-
 
 ## typeof type guards
 
@@ -26,7 +36,8 @@ Because TS encodes how **typeof** operates on different values, it knows about s
 ```typescript
 const printAll = (strs: string | string[] | null) => {
   if (typeof strs === "object") {
-    for (const s of strs) { // Error: Object is possibly 'null'
+    for (const s of strs) {
+      // Error: Object is possibly 'null'
       console.log(s);
     }
   } else if (typeof strs === "string") {
@@ -34,7 +45,7 @@ const printAll = (strs: string | string[] | null) => {
   } else {
     // do nothing
   }
-}
+};
 ```
 
 TS lets us know that `strs` was only narrowed down to **string[] | null** instead of just **string[]**.
@@ -57,12 +68,12 @@ It's fairly popular to leverage this behavior, especially for guarding against v
 
 ```typescript
 const printAll = (strs: string | string[] | null) => {
-  if (strs && typeof strs === 'object') {
+  if (strs && typeof strs === "object") {
     // for ...
-  } else if (typeof strs === 'string') {
+  } else if (typeof strs === "string") {
     // ...
   }
-}
+};
 ```
 
 Keep in mind though that truthiness checking on primitives can often be error prone.
@@ -78,7 +89,6 @@ function printAll(strs: string | string[] | null) {
 
 We wrapped the entire body of the function in a truthy check, but this has a subtle downside: we may no longer be
 handling the empty string case correctly.
-
 
 ## Equality narrowing
 
@@ -122,7 +132,6 @@ function multiplyValue(container: Container, factor: number) {
 }
 ```
 
-
 ## The `in` operator narrowing
 
 TS takes the JS `in` operator into account as a way to narrow down potential types.
@@ -139,7 +148,7 @@ function move(animal: Fish | Bird) {
   if ("swim" in animal) {
     return animal.swim();
   }
-  
+
   return animal.fly();
 }
 ```
@@ -160,18 +169,15 @@ function move(animal: Fish | Bird | Human) {
 }
 ```
 
-
 ## Assignments
 
 Assignability is always checked against the declared type.
-
 
 ## Control flow analysis
 
 The analysis of code based on reachability is called **control flow analysis**, and TS uses this flow analysis to narrow
 types as it encounters type guards and assignments. When a variable is analyzed, control flow can split off and re-merge
 over and over again, and that variable can be observed to have a different type at each point.
-
 
 ## Using type predicates
 
@@ -186,18 +192,15 @@ function isFish(pet: Fish | Bird): pet is Fish {
 `pet is Fish` is our type predicate in this example. A predicate takes the form `parameterName is Type`, where **parameterName**
 must be the name of a parameter from the current function signature.
 
-
 ## Discriminated unions
 
 When every type in a union contains a common property with literal types, TS considers that to be a _discriminated union_,
 and can narrow out the members of the union. In such case a common property is called _discriminant_.
 
-
 ## The never type
 
 When narrowing, you can reduce the options of a union to a point where you have removed all posibilities and have nothing
 left. In those cases, TS will use a **never** type to represent a state which shouldn't exist.
-
 
 ## Exhaustiveness checking
 

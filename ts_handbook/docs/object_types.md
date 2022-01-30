@@ -1,5 +1,17 @@
 # Object Types
 
+- [Property Modifiers](#property-modifiers)
+  - [Optional Properties](#optional-properties)
+  - [**readonly** Properties](#readonly-properties)
+  - [Index Signatures](#index-signatures)
+- [Extending Types](#extending-types)
+- [Intersection Types](#intersection-types)
+- [Generic Object Types](#generic-object-types)
+  - [The **Array** Type](#the-array-type)
+  - [The **ReadonlyArray** Type](#the-readonlyarray-type)
+- [Tuple Types](#tuple-types)
+  - [**readonly** Tuple Types](#readonly-tuple-types)
+
 ## Property Modifiers
 
 Each prop in an object type can specify a couple of things: the type, whether the prop is optional, and whether the prop
@@ -40,7 +52,6 @@ It's important to manage expectations of what readonly implies. It's useful to s
 TS on how an object should be used. TS doesn't factor in whether properties on two types are **readonly** when checking
 whether those types are compatible, so **readonly** props can also change via aliasing.
 
-
 ### Index Signatures
 
 Sometimes you don't know all the names of a type's properties ahead of time, but you do know the shape of the values.
@@ -58,7 +69,7 @@ const secondItem = myArray[1];
 
 An index signature property must be either 'string' or 'number'.
 
-While string index signatures are a powerful way to describe the "dictionary" pattern, they also enforce that all 
+While string index signatures are a powerful way to describe the "dictionary" pattern, they also enforce that all
 properties match their return type. This is because a string index declares that `obj.property` is also available as
 `obj["property"]`. In the following example, `name`'s type does not match the string index's type, and the type checker
 gives an error:
@@ -79,11 +90,10 @@ interface ReadONlyStringArray {
 }
 ```
 
-
 ## Extending Types
 
-The **extends** keyword on an **interface** allows us to effectively copy members from other named types, and add 
-whatever new members we want. 
+The **extends** keyword on an **interface** allows us to effectively copy members from other named types, and add
+whatever new members we want.
 
 ```typescript
 interface BasicAddress {
@@ -112,7 +122,6 @@ interface Circle {
 interface ColorfulCircle extends Colorful, Circle {}
 ```
 
-
 ## Intersection Types
 
 An intersection type is defined using the `&` operator.
@@ -131,7 +140,6 @@ type ColorfulCircle = Colorful & Circle;
 
 This will produce a new type that has all the members of **Colorful** and **Circle**.
 
-
 ## Generic Object Types
 
 ```typescript
@@ -143,7 +151,7 @@ let box: Box<string>;
 ```
 
 **Box** is reusable in that **Type** can be substituted with anything. That means that when we need
-a box for a new type, we don't need to declare a new **Box** type at all. 
+a box for a new type, we don't need to declare a new **Box** type at all.
 
 This also means that we can avoid overloads entirely by instead using generic functions.
 
@@ -153,8 +161,7 @@ function setContents<Type>(box: Box<Type>, newContents: Type) {
 }
 ```
 
-Type aliases can also be generic. 
-
+Type aliases can also be generic.
 
 ```typescript
 interface Box<Type> {
@@ -164,9 +171,8 @@ interface Box<Type> {
 // by using a type alias instead:
 type Box<Type> = {
   contents: Type;
-}
+};
 ```
-
 
 ### The **Array** Type
 
@@ -179,16 +185,15 @@ function doSomething(value: Array<string>) {
 }
 ```
 
-Modern JS also provides other data structures which are generic, like **Map<K, V>**, **Set<T>**, **Promise<T>**. All this 
+Modern JS also provides other data structures which are generic, like **Map<K, V>**, **Set<T>**, **Promise<T>**. All this
 really means is that because of how **Map**, **Set**, and **Promise** behave, they can work with any sets of types.
-
 
 ### The **ReadonlyArray** Type
 
 This is a special type that describes arrays that shouldn't be changed.
 
 Much like the **readonly** modifier for properties, it's mainly a tool we can use for intent. When we see a function that
-returns **ReadonlyArray**s, it tells us we're not meant to change the contents at all, and when we see a function that 
+returns **ReadonlyArray**s, it tells us we're not meant to change the contents at all, and when we see a function that
 consumes **ReadonlyArray**s, it tells us that we can pass any array into that function without worrying that it will change
 its contents.
 
@@ -196,19 +201,18 @@ its contents.
 const roArray: ReadonlyArray<string> = ["red", "green", "blue"];
 ```
 
-Just as TS provides a shorthand syntax for **Array<Type>** with **Type[]**, it also provides a shorthand syntax for 
+Just as TS provides a shorthand syntax for **Array<Type>** with **Type[]**, it also provides a shorthand syntax for
 **ReadonlyArray<Type>** with **readonly Type[]**.
 
 > [**NOTE**] Unlike the **readonly** property modifier, assignability isn't bidirectional between regular **Arrays**
 > and **ReadonlyArrays**.
-> 
+>
 > ```typescript
 > let x: readonly string[] = [];
 > let y: string[] = [];
 > x = y;
 > y = x; // Not allowed.
 > ```
-
 
 ## Tuple Types
 
@@ -236,7 +240,7 @@ interface StringNumberPair {
 }
 ```
 
-Tuples can have optional properties by writing out a question mark (`?` after an element's type). Optional tuple elements 
+Tuples can have optional properties by writing out a question mark (`?` after an element's type). Optional tuple elements
 can only come at the end, and also affect the type of **length**.
 
 Tuples cna also have rest elements, which have to be an array/tuple type.
@@ -256,7 +260,7 @@ function readButtonInput(...args: [string, number, ...boolean[]]) {
 }
 ```
 
-is basically equivalent to: 
+is basically equivalent to:
 
 ```typescript
 function readButtonInput(name: string, version: number, ...input: boolean[]) {
@@ -264,12 +268,11 @@ function readButtonInput(name: string, version: number, ...input: boolean[]) {
 }
 ```
 
-
 ### **readonly** Tuple Types
 
 Tuples types have **readonly** variants, and can be specified by sticking a **readonly** modifier in front of them - just
 like with array shorthand syntax.
 
 Tuples tend to be created and left un-modified in most code, so annotating types as **readonly** tuples when possible is
-a good default. This is also important given that array literals with const assertions will be inferred with readonly 
+a good default. This is also important given that array literals with const assertions will be inferred with readonly
 tuple types.

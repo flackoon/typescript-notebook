@@ -1,5 +1,7 @@
 # Keyof Type Operator
 
+- [The **keyof** type operator](#the-keyof-type-operator)
+
 ## The **keyof** type operator
 
 The **keyof** operator takes an object type and produces a string or numerical literal union of its keys. The following
