@@ -132,3 +132,25 @@ type T1 = ReturnType<typeof stringOrNum>; // type is string | number
 
 ## Distributive Conditional Types
 
+When conditional types act on a generic type, they become __distributive__ when given a union type. 
+
+```typescript
+type ToArray<Type> = Type extends any ? Type[] : never;
+```
+
+If we plug a union type into **ToArray**, then the conditional type will be applied to each member of that union.
+
+```typescript
+type ToArray<Type> = Type extends any ? Type[] : never;
+type StrArrOrNumArr = ToArray<string | number>;
+// type StrArrOrNumArr = string[] | number[]
+```
+
+Typically, distributivity is the desired behavior. To avoid that behavior, you can surround each side of the **extends**
+keyword with square brackets.
+
+```typescript
+type ToArrayNonDist<Type> = [Type] extends [any] ? Type[] : never;
+
+type StrArrOrNumArr = ToArrayNonDist<string | number>;
+// type StrArrOrNumArr = (string | number)[]
