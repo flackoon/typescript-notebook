@@ -132,4 +132,3 @@ type T1 = ReturnType<typeof stringOrNum>; // type is string | number
 
 ## Distributive Conditional Types
 
-
