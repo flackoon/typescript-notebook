@@ -157,3 +157,138 @@ This is known as **declaration merging**.
 
 > If it's essential that no one ever augmented your type, then use **type**.
 
+
+## Use Type Operations and Generic to Avoid Repeating Yourself
+
+If you have an interface and you want another type to represent just a part of that interface, you can do the following:
+
+```typescript
+interface State {
+  userId: string
+  pageTitle: string
+  recentFiles: string[]
+  pageContents: string
+}
+
+type TopNavState = {
+  userId: State['userId']
+  pageTitle: State['pageTitle']
+  recentFiles: State['recentFiles']
+}
+```
+
+This can be shortened though, to:
+
+```typescript
+type TopNavState = {
+  [k in 'userId' | 'pageTitle' | 'recentFiles']: State[k]
+}
+```
+
+Mapped types are the type system equivalent of looping over the fields in an array. This particular pattern is so common
+that it is part of the standard library, where it's called **Pick**:
+
+```typescript
+type Pick<T, K> = { [k in K]: T[k] }; // This definition is now quite complete.
+
+type TopNavState = Pick<State, 'userId' | 'pageTitle' | 'recentFiles'>
+```
+
+Another form of duplication can arise with tagged unions. What if you want a type for just the tag?
+
+```typescript
+interface SaveAction {
+  type: 'save'
+}
+
+interface LoadAction {
+  type: 'load'
+}
+
+type Action = SaveAction | LoadAction
+type ActionType = 'save' | 'load' // Repeated types!!!
+type ActionType = Action['type'] // That's how you do it.
+```
+
+This way **ActionType** will incorporate new types as they get added to the **Action** type. This type is distinct from
+what you'd get using **Pick**, which would give you an interface with a **type** property:
+
+```typescript
+type ActionRec = Pick<Action, 'type'> // {type: 'save' | 'load' }
+```
+
+If you're defining a class which can be initialized and later updated, the type for the parameter to the update method
+will optionally include most of the same params as the constructor:
+
+```typescript
+interface Options {
+  width: number
+  height: number
+  color: string
+  label: string
+}
+
+interface OptionsUpdate {
+  width?: number
+  height?: number
+  color?: string
+  label?: string
+}
+
+class UIWidget {
+  constructor(init: Options) {}
+  update(options: OptionsUpdate) {}
+}
+```
+
+You can construct **OptionsUpdate** from **Options** using a mapped type and **keyof**:
+
+```typescript
+type OptionsUpdate = {[k in keyof Options]?: Options[k]}
+```
+
+This pattern is also extremely common and is enshrined in the standard lib as **Partial**:
+
+```typescript
+class UIWidget {
+  constructor(init: Options) {}
+  update(options: Partial<Options>)
+}
+```
+
+You may also find yourself wanting to define a type after the shape of a value:
+
+```typescript
+const INIT_OPTIONS = {
+  width: 300
+  height: 200
+}
+
+interface Options {
+  width: number
+  height: number
+}
+
+// You can do this way way easier:
+type Options = typeof INIT_OPTIONS
+```
+
+Similarly, you may want to create a named type for the inferred return value of a function or method:
+
+```typescript
+function getUserInfo(userId: string) {
+  /// ...
+  return {
+    userId,
+    name,
+    age,
+    height
+  }
+}
+```
+
+Doing this directly requires conditional types. In this case the **ReturnType** generic does exactly what you want:
+
+```typescript
+type UserInfo = ReturnType<typeof getUserInfo>
+```
