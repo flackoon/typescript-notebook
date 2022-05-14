@@ -292,3 +292,171 @@ Doing this directly requires conditional types. In this case the **ReturnType** 
 ```typescript
 type UserInfo = ReturnType<typeof getUserInfo>
 ```
+
+
+## Use Index Signatures for Dynamic Data
+
+Objects in JS map string keys to values of any type. TS lets you represent flexible mappings like this by specifying an
+__index signature__ on the type:
+
+```typescript
+type Rocket = {[property: string]: string}
+const rocket: Rocket = {
+  name: 'Falcon 9',
+  variant: 'v1.0',
+  thrust: '4,949 kN',
+}
+```
+
+While this does type check, it has a few downsides:
+- It allows any keys, including incorrect ones. Had you written **Name** instead of **name**, it would have still been a
+  valid **Rocket**
+- It doesn't require any specific keys to be present. `{}` is also a valid **Rocket**
+- It cannot have distinct types for different keys. For example, **thrust** should probably be a **number**, not a **string**
+- TS's language services can't help you with types like this. No autocomplete because the key could be anything.
+
+> In short, index signatures are not very precise. There are almost always better alternatives to them. In this case,
+> **Rocket** should clearly be an **interface**.
+
+If your type has a limited set of possible fields, don't model this with an index signature. For instance, if you know
+your data will have keys like A, B, C, D, but you don't know how many of them there will be, you could model the type
+either with optional fields or a union:
+
+```typescript
+interface Row1 { [column: string]: number } // Too broad
+interface Row2 { a: number; b?: number; c?: number; d?: number } // Better
+type Row3 =
+  | { a:number }
+  | { a:number; b:number }
+  | { a:number; b:number; c:number }
+  | { a:number; b:number; c:number; d:number }
+```
+
+The last form is most precise, but it may be less convenient to work with.
+
+An alternative to using an index signature is **Record**. A generic type that gives you more flexibility in the key type.
+
+```typescript
+type Vec3D = Record<'x' | 'y' | 'z', number>
+/// Type Vec3d = {
+//    x: number
+//    y: number
+//    z: number
+// }
+```
+
+Another is using a mapped type.
+
+```typescript
+type Vec3D = {[k in 'x' | 'y' | 'z']: number}
+// Same as above
+type ABC = {[k in 'a' | 'b' | 'c']: k extends 'b' ? string : number}
+/// Type ABC = {
+//    a: number
+//    b: string
+//    c: number
+// }
+```
+
+
+## Prefer Arrays, Tuples, and ArrayLike to number Index Signatures
+
+Numbers cannot be used as keys in an object. JS converts everything to string when its used as an object key.
+
+A weird feat of JS is that even in an array, the numeric indexes are being converted to strings. Hence, you can also
+access the elements of an array using string keys. 
+
+Why?
+Because:
+
+```javascript
+typeof [] // 'object'
+```
+
+> In most browsers and JS engines, for-in loops over arrays are several orders of magnitude slower than for-of or a C-style
+> for loop (for(;;)).
+
+The general pattern here is that a **number** index signature means that what you put in has to be a **number**, but what
+you get out is a **string**.
+As a general rule, there's not much reason to use **number** as the index signature rather than **string**. If you want
+to specify something that will be indexed using numbers, you probably want to use an Array or tuple type instead. 
+
+> Using **number** as an index type can create the misconception that numeric properties are a thing in JS.
+
+
+## Use Mapped Types to Keep Values in Sync
+
+Suppose you're writing a UI component for drawing scatter plots.
+
+```typescript
+interface ScatterProps {
+  xs: number[]
+  ys: number[]
+  
+  xRange: [number, number]
+  yRange: [number, number]
+
+  onClick: (x: number, y: number, index: number) => void
+}
+```
+And you want to redraw the chart only when there's a change, except for the event handler.
+
+Here's one way to implement this optimization:
+
+```typescript
+function shouldUpdate(
+  oldProps: ScatterProps,
+  newProps: ScatterProps
+) {
+  let k: keyof ScatterProps
+  for (k in oldProps) {
+    if (oldProps[k] !== newProps[k])
+      if (k !== 'onClick') return true
+  }
+  return false
+}
+```
+
+When someone adds a new property, the `shouldUpdate` function will redraw the chart whenever it changes. It might be
+called "fail closed" approach. The pros is that the chart will always look right, the cons is that it might be drawn
+too often.
+
+A "fail open" approach might look like this:
+
+```typescript
+function shouldUpdate(oldProps: ScatterProps, newProps: ScatterProps) {
+  return (
+    oldProps.xs !== newProps.xs ||
+    oldProps.ys !== newProps.ys ||
+    oldProps.xRange !== newProps.xRange ||
+    oldProps.yRange !== newProps.yRange ||
+    oldProps.color !== newProps.color
+  )
+}
+```
+
+With this approach, there won't be any unnecessary redraws, but there might be some necessary ones that got dropped.
+This violates the "first, do no harm" principle of optimization and so is less common.
+
+Its best if the type checker could enforce updating the `shouldUpdate` function when **ScatterProps** gets updated:
+
+```typescript
+const REQUIRES_UPDATE: {[k in keyof ScatterProps]: boolean} = {
+  xs: true,
+  ys: true,
+  xRange: true,
+  yRange: true,
+  color: true,
+  onClick: false
+}
+
+function shouldUpdate(oldProps: ScatterProps, newProps: ScatterProps) {
+  let k: keyof ScatterProps
+  for (k in oldProps) {
+    if (oldProps[k] !== newProps[k] && REQUIRES_UPDATE[k]) return true
+  }
+  return false
+}
+```
+
+This way an error will be produced when a new property that's added to **ScatterProps** is not in **REQUIRES_UPDATE**.
