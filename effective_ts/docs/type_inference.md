@@ -251,3 +251,108 @@ function getElementValue(el: HTMLElement) {
 ```
 This is known as "user-defined type guard". The **el is HTMLInputElement** as a return type tells the type checker that
 it can narrow the type of the parameter if the function returns true.
+
+
+## Create Objects All at Once
+
+...You can also use the object spread operator to build up objects by field in a type-safe way. The key is to use a new
+variable on every update so that each gets a new type:
+
+```typescript
+const pt0 = {}
+const pt1 = {...pt0, x: 3}
+const pt: Point = {...pt1, y: 4} // OK
+```
+
+While this is a roundabout way to build up such a simple object, it can be a useful technique for adding properties to
+an object and allowing TS to infer a new type.
+
+To conditionally add a property in a type-safe way, you can use object spread with **null** or `{}`, which add no
+properties:
+
+```typescript
+declare let hasMiddle: boolean
+const firstLast = {first: 'Harry', last: 'Truman'}
+const president = {...firstLast, ...(hasMiddle ? {middle: 'S'} : {})}
+```
+
+
+## Be consistent in your use of aliases
+
+When you introduce a new name for a value:
+
+```typescript
+const borough = {name: 'Brooklyn', location: [40.688, -73.979]}
+const loc = borough.location
+```
+
+you have created an *alias*. Changes ot properties on the alias will be visible on the original value as well.
+
+```typescript
+> loc[0] = 0
+> borough.location
+[0, -73.979]
+```
+
+Aliases are the bane of compiler writers in all languages because they make control flow analysis difficult.
+
+...
+
+TS's control flow analysis tends to be quite good for local variables. But for properties you should be on guard:
+
+```typescript
+function fn(p: Polygon) { /* ... */ }
+
+polygon.bbox // Type is BoundingBox | undefined
+if (polygon.bbox) {
+  polygon.bbox // Type is BoundingBox
+  fn(polygon)
+  polygon.bbox // Type is still BoundingBox
+}
+```
+
+The call to `fn(polygon)` could very well un-set **polygon.bbox**, so it would be safer for the type to revert to
+**BoundingBox | undefined**. But this would get frustrating: you'd have to repeat your property checks every time you
+called a function. So TS makes the pragmatic choice to assume the function does not invalidate its type refinements.
+But it *could*. If you'd factored out a local **bbox** variable instead of using **polygon.bbox**, the type of **bbox**
+would remain accurate, but it might no longer be the same value as **polygon.bbox**.
+
+
+## Use async functions instead of callbacks for asynchronous code
+
+When you target ES5 or earlier, the TS compiler will perform some elaborate transformations to make **async** and
+**await** work. In other words, whatever your runtime, with TS you can use **async/await**.
+
+Type inference also works well with **Promise.race**, which resolves when the first of its input Promises resolves. You
+can use this to add timeouts to Promises in a general way.
+
+<details>
+  <summary>Adding timeouts to Promises example</summary>
+
+  ```typescript
+  function timeout(ms: number): Promise<never> {
+    return new Promise((res, rej) => {
+      setTimeout(() => reject('timeout'), ms)
+    })
+  }
+
+  async function fetchWithTimeout(url: string, ms: number) {
+    return Promise.race([fetch(url), timeout(ms)])
+  }
+  ```
+
+  The return type of `fetchWithTimeout` is inferred as **Promise<Response>**, no type annotations required. It's
+  interesting to dig into why this works: the return type of **Promise.race** is the union of the types of its inputs, in
+  this case **Promise<Response | never>**. But taking a union with a **never** is a no-op, so this gets simplified to
+  **Promise<Response>**. 
+
+</details>
+
+
+> A function should either always be run synchronously or always be run asynchronously. It should never mix the two.
+
+
+## Use functional constructs and libraries to help types flow
+
+Use built-in functional constructs and those in utility libraries like Lodash instead of hand-rolled constructs to
+improve type flow, increase legibility, and reduce the need for explicit type annotations.
